@@ -16,6 +16,8 @@ module ID(
     input wire [`EX_TO_ID_WD-1:0] ex_to_id_bus,
     
     input wire [`MEM_TO_ID_WD-1:0] mem_to_id_bus,
+    
+    input wire [`WB_TO_ID_WD-1:0] wb_to_id_bus,
 
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
@@ -76,7 +78,12 @@ module ID(
         mem_rf_waddr,
         mem_rf_wdata
     } = mem_to_id_bus;
-
+    assign {
+        wb_rf_we,
+        wb_rf_waddr,
+        wb_rf_wdata
+    } = wb_to_id_bus;
+        
     wire [5:0] opcode;
     wire [4:0] rs,rt,rd,sa;
     wire [5:0] func;
@@ -119,7 +126,10 @@ module ID(
         .ex_wdata  (ex_result  ),
         .mem_to_id_we     (mem_rf_we     ),
         .mem_to_id_waddr  (mem_rf_waddr  ),
-        .mem_wdata  (mem_rf_wdata  )
+        .mem_wdata  (mem_rf_wdata  ),
+        .wb_to_id_we     (wb_rf_we     ),
+        .wb_to_id_waddr  (wb_rf_waddr  ),
+        .wb_wdata        (wb_rf_wdata  )
     );
     
 
@@ -137,7 +147,7 @@ module ID(
     assign sel = inst[2:0];
 
     wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu,
-         inst_jal, inst_jr;
+         inst_jal, inst_jr, inst_addu, inst_or, inst_sll;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -176,21 +186,22 @@ module ID(
     assign inst_subu    = op_d[6'b00_0000] && sa_d[5'b00_000] && func_d[6'b10_0011];
     assign inst_jal     = op_d[6'b00_0011];
     assign inst_jr      = op_d[6'b00_0000] && sa_d[5'b00_000] && func_d[6'b00_1000];
+    assign inst_addu    = op_d[6'b00_0000] && sa_d[5'b00_000] && func_d[6'b10_0001];
     
     
     
     // rs to reg1
-    assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu ;
+    assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_addu;
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal;
 
     // sa_zero_extend to reg1
-    assign sel_alu_src1[2] = 1'b0;
+    assign sel_alu_src1[2] = 1‘b0;
 
     
     // rt to reg2
-    assign sel_alu_src2[0] = inst_subu;
+    assign sel_alu_src2[0] = inst_subu | inst_addu;
     
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_lui | inst_addiu;
@@ -203,7 +214,7 @@ module ID(
 
 
 
-    assign op_add = inst_addiu;
+    assign op_add = inst_addiu | inst_jal | inst_addu;
     assign op_sub = inst_subu;
     assign op_slt = 1'b0;
     assign op_sltu = 1'b0;
@@ -231,12 +242,12 @@ module ID(
 
 
     // regfile sotre enable
-    assign rf_we = inst_ori | inst_lui | inst_addiu | inst_subu | inst_jal;
+    assign rf_we = inst_ori | inst_lui | inst_addiu | inst_subu | inst_jal | inst_addu;
 
 
 
     // store in [rd]
-    assign sel_rf_dst[0] = inst_subu;
+    assign sel_rf_dst[0] = inst_subu | inst_addu;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori | inst_lui | inst_addiu;
     // store in [31]
