@@ -147,7 +147,7 @@ module ID(
     assign sel = inst[2:0];
 
     wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu,
-         inst_jal, inst_jr, inst_addu, inst_or, inst_sll;
+         inst_jal, inst_jr, inst_addu;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -197,7 +197,7 @@ module ID(
     assign sel_alu_src1[1] = inst_jal;
 
     // sa_zero_extend to reg1
-    assign sel_alu_src1[2] = 1‘b0;
+    assign sel_alu_src1[2] = 1'b0;
 
     
     // rt to reg2

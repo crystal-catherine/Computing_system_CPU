@@ -39,9 +39,6 @@ module MEM(
     wire [31:0] ex_result;
     wire [31:0] mem_result;
     
-    wire mem_rf_we;
-    wire [4:0] mem_rf_waddr;
-    wire [31:0] mem_rf_wdata;
 
     assign {
         mem_pc,         // 75:44
@@ -65,14 +62,10 @@ module MEM(
     };
     
     
-    assign mem_rf_we = rf_we;
-    assign mem_rf_waddr = rf_waddr;
-    assign mem_rf_wdata = rf_wdata;
-    
     assign mem_to_id_bus = {
-        mem_rf_we,      
-        mem_rf_waddr,   
-        mem_rf_wdata    
+        rf_we,      
+        rf_waddr,   
+        rf_wdata    
     };
 
 
