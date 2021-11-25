@@ -51,6 +51,7 @@ module mycpu_core(
         .if_to_id_bus    (if_to_id_bus    ),
         .inst_sram_rdata (inst_sram_rdata ),
         .wb_to_rf_bus    (wb_to_rf_bus    ),
+        .ex_to_id_bus    (ex_to_id_bus    ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         .br_bus          (br_bus          )
     );
@@ -61,6 +62,7 @@ module mycpu_core(
         .stall           (stall           ),
         .id_to_ex_bus    (id_to_ex_bus    ),
         .ex_to_mem_bus   (ex_to_mem_bus   ),
+        .ex_to_id_bus   (ex_to_id_bus   ),
         .data_sram_en    (data_sram_en    ),
         .data_sram_wen   (data_sram_wen   ),
         .data_sram_addr  (data_sram_addr  ),
