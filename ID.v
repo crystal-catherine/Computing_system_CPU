@@ -12,8 +12,6 @@ module ID(
     input wire [31:0] inst_sram_rdata,
 
     input wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus,
-    
-    input wire [`EX_TO_ID-1:0] ex_to_id_bus,
 
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
@@ -21,7 +19,6 @@ module ID(
 );
 
     reg [`IF_TO_ID_WD-1:0] if_to_id_bus_r;
-    reg [`EX_TO_ID-1:0] ex_to_id_bus_r;
     wire [31:0] inst;
     wire [31:0] id_pc;
     wire ce;
@@ -55,11 +52,6 @@ module ID(
         wb_rf_waddr,
         wb_rf_wdata
     } = wb_to_rf_bus;
-    assign {
-        ex_wreg_i,
-        ex_wd_i,
-        ex_wdata_i
-    } = ex_to_id_bus_r;
 
     wire [5:0] opcode;
     wire [4:0] rs,rt,rd,sa;
@@ -86,7 +78,7 @@ module ID(
     wire sel_rf_res;
     wire [2:0] sel_rf_dst;
 
-    wire [31:0] rdata1, rdata2, reg1_o, reg2_o;
+    wire [31:0] rdata1, rdata2;
 
     regfile u_regfile(
     	.clk    (clk    ),
@@ -143,10 +135,6 @@ module ID(
     assign inst_lui     = op_d[6'b00_1111];
     assign inst_addiu   = op_d[6'b00_1001];
     assign inst_beq     = op_d[6'b00_0100];
-    
-    
-    assign reg1_o = ((inst_ori | inst_addiu)&&(ex_wreg_i)&&(ex_wd_i==rs))?ex_wdata_i:rdata1;
-    assign reg2_o = ((inst_ori | inst_addiu | inst_lui)&&(ex_wreg_i)&&(ex_wd_i==rt))?ex_wdata_i:rdata2;
 
 
 
@@ -232,8 +220,8 @@ module ID(
         rf_we,          // 70
         rf_waddr,       // 69:65
         sel_rf_res,     // 64
-        reg1_o,         // 63:32
-        reg2_o          // 31:0
+        rdata1,         // 63:32
+        rdata2          // 31:0
     };
 
 
@@ -247,7 +235,7 @@ module ID(
     wire [31:0] pc_plus_4;
     assign pc_plus_4 = id_pc + 32'h4;
 
-    assign rs_eq_rt = (reg1_o == reg2_o);
+    assign rs_eq_rt = (rdata1 == rdata2);
 
     assign br_e = inst_beq & rs_eq_rt;
     assign br_addr = inst_beq ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 32'b0;

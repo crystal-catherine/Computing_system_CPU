@@ -8,8 +8,6 @@ module EX(
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
     output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
-    
-    output wire [`EX_TO_ID-1:0] ex_to_id_bus,
 
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
@@ -93,12 +91,6 @@ module EX(
         rf_we,          // 37
         rf_waddr,       // 36:32
         ex_result       // 31:0
-    };
-    
-    assign ex_to_id_bus = {
-        rf_we,
-        rf_waddr,
-        ex_result
     };
     
     
