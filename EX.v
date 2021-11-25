@@ -8,6 +8,8 @@ module EX(
     input wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
     output wire [`EX_TO_MEM_WD-1:0] ex_to_mem_bus,
+    
+    output wire [`EX_TO_ID_WD-1:0] ex_to_id_bus,
 
     output wire data_sram_en,
     output wire [3:0] data_sram_wen,
@@ -66,6 +68,8 @@ module EX(
 
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
+    wire ex_rf_we;
+    wire [4:0] ex_rf_waddr;
 
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
                       sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
@@ -91,6 +95,16 @@ module EX(
         rf_we,          // 37
         rf_waddr,       // 36:32
         ex_result       // 31:0
+    };
+    
+    
+    assign ex_rf_we = rf_we;
+    assign ex_rf_waddr = rf_waddr;
+    
+    assign ex_to_id_bus = {
+        ex_rf_we,
+        ex_rf_waddr,
+        ex_result
     };
     
     

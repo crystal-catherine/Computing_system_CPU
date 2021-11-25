@@ -12,6 +12,10 @@ module ID(
     input wire [31:0] inst_sram_rdata,
 
     input wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus,
+    
+    input wire [`EX_TO_ID_WD-1:0] ex_to_id_bus,
+    
+    input wire [`MEM_TO_ID_WD-1:0] mem_to_id_bus,
 
     output wire [`ID_TO_EX_WD-1:0] id_to_ex_bus,
 
@@ -22,6 +26,14 @@ module ID(
     wire [31:0] inst;
     wire [31:0] id_pc;
     wire ce;
+    
+    wire ex_rf_we;
+    wire [4:0] ex_rf_waddr;
+    wire [31:0] ex_result;
+    
+    wire mem_rf_we;
+    wire [4:0] mem_rf_waddr;
+    wire [31:0] mem_rf_wdata;
 
     wire wb_rf_we;
     wire [4:0] wb_rf_waddr;
@@ -42,6 +54,7 @@ module ID(
         end
     end
     
+    
     assign inst = inst_sram_rdata;
     assign {
         ce,
@@ -52,6 +65,16 @@ module ID(
         wb_rf_waddr,
         wb_rf_wdata
     } = wb_to_rf_bus;
+    assign {
+        ex_rf_we,
+        ex_rf_waddr,
+        ex_result
+    } = ex_to_id_bus;
+    assign {
+        mem_rf_we,
+        mem_rf_waddr,
+        mem_rf_wdata
+    } = mem_to_id_bus;
 
     wire [5:0] opcode;
     wire [4:0] rs,rt,rd,sa;
@@ -80,6 +103,7 @@ module ID(
 
     wire [31:0] rdata1, rdata2;
 
+
     regfile u_regfile(
     	.clk    (clk    ),
         .raddr1 (rs ),
@@ -88,8 +112,15 @@ module ID(
         .rdata2 (rdata2 ),
         .we     (wb_rf_we     ),
         .waddr  (wb_rf_waddr  ),
-        .wdata  (wb_rf_wdata  )
+        .wdata  (wb_rf_wdata  ),
+        .ex_to_id_we     (ex_rf_we     ),
+        .ex_to_id_waddr  (ex_rf_waddr  ),
+        .ex_wdata  (ex_result  ),
+        .mem_to_id_we     (mem_rf_we     ),
+        .mem_to_id_waddr  (mem_rf_waddr  ),
+        .mem_wdata  (mem_rf_wdata  )
     );
+    
 
     assign opcode = inst[31:26];
     assign rs = inst[25:21];
@@ -135,9 +166,9 @@ module ID(
     assign inst_lui     = op_d[6'b00_1111];
     assign inst_addiu   = op_d[6'b00_1001];
     assign inst_beq     = op_d[6'b00_0100];
-
-
-
+    
+    
+    
     // rs to reg1
     assign sel_alu_src1[0] = inst_ori | inst_addiu;
 
