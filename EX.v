@@ -70,7 +70,6 @@ module EX(
 
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
-    wire [5:0] ex_op_i;
 
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
                       sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
@@ -95,7 +94,6 @@ module EX(
     assign data_sram_wen = data_ram_wen;
     assign data_sram_addr = ex_result;
     assign data_sram_wdata = rf_rdata2;
-    assign ex_op_i = data_sram_en ? inst[31:26]:6'b000000;
     
     assign ex_to_mem_bus = {
         ex_pc,          // 75:44
@@ -110,8 +108,7 @@ module EX(
     assign ex_to_id_bus = {
         rf_we,          
         rf_waddr,       
-        ex_result,
-        ex_op_i       
+        ex_result       
     };
     
     
