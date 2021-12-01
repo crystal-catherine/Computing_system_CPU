@@ -165,7 +165,7 @@ module ID(
     wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu,
          inst_jal, inst_jr, inst_addu, inst_or, inst_sll, inst_lw,
          inst_sw,inst_xor, inst_sltu, inst_bne, inst_slt, inst_slti,
-         inst_sltiu;
+         inst_sltiu, inst_j;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -215,6 +215,7 @@ module ID(
     assign inst_slt     = op_d[6'b00_0000] && sa_d[5'b00_000] && func_d[6'b10_1010];
     assign inst_slti    = op_d[6'b00_1010];
     assign inst_sltiu   = op_d[6'b00_1011];
+    assign inst_j       = op_d[6'b00_0010];
     
     
     
@@ -295,7 +296,7 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = 0'b0; 
+    assign sel_rf_res = 1'b0; 
 
     assign id_to_ex_bus = {
         id_pc,          // 158:127
@@ -325,11 +326,12 @@ module ID(
 
     assign rs_eq_rt = (rdata1 == rdata2);
 
-    assign br_e    = (inst_beq & rs_eq_rt) | inst_jal | inst_jr | (inst_bne & ~rs_eq_rt);
+    assign br_e    = (inst_beq & rs_eq_rt) | inst_jal | inst_jr | (inst_bne & ~rs_eq_rt) | inst_j;
     assign br_addr = inst_beq ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}) : 
                      inst_jal ? ({pc_plus_4[31:28],instr_index,2'b0}):
                      inst_jr  ?  rdata1 : 
-                     inst_bne ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}): 
+                     inst_bne ? (pc_plus_4 + {{14{inst[15]}},inst[15:0],2'b0}):
+                     inst_j ? {pc_plus_4[31:28],instr_index,2'b0} :
                      32'b0;
 
     assign br_bus = {
