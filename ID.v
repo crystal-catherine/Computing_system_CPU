@@ -26,6 +26,8 @@ module ID(
 );
 
     reg [`IF_TO_ID_WD-1:0] if_to_id_bus_r;
+    reg [31:0] if_to_id_inst_r;//暂存下一条if的指令，防止其与load相关冲突
+    reg inst_flag;//判断是载入下一条还是上一条load相关
     wire [31:0] inst;
     wire [31:0] id_pc;
     wire ce;
@@ -33,6 +35,7 @@ module ID(
     wire ex_rf_we;
     wire [4:0] ex_rf_waddr;
     wire [31:0] ex_result;
+    wire [5:0] ex_op_i;
     
     wire mem_rf_we;
     wire [4:0] mem_rf_waddr;
@@ -57,8 +60,25 @@ module ID(
         end
     end
     
+    always @ (posedge clk) begin
+    inst_flag <= 1'b0;
+        if (rst) begin
+            if_to_id_inst_r <= 32'b0;
+            inst_flag <= 1'b0;       
+        end
+        else if (stall[2]==`Stop && stall[3]==`NoStop) begin
+            if_to_id_inst_r <= inst_sram_rdata;
+            inst_flag <= 1'b1;
+        end
+        else if (stall[2]==`Stop &&stall[3]==`Stop && stall[4]==`NoStop) begin
+            //if_to_id_inst_r <= inst_sram_rdata;
+            inst_flag <= 1'b1;
+        end
+    end
     
-    assign inst = inst_sram_rdata;
+    //(stall[2]==`NoStop)
+    
+    assign inst = inst_flag ? if_to_id_inst_r : inst_sram_rdata;
     assign {
         ce,
         id_pc
@@ -66,7 +86,8 @@ module ID(
     assign {
         ex_rf_we,
         ex_rf_waddr,
-        ex_result
+        ex_result,
+        ex_op_i
     } = ex_to_id_bus;
     assign {
         mem_rf_we,
@@ -143,7 +164,7 @@ module ID(
 
     wire inst_ori, inst_lui, inst_addiu, inst_beq, inst_subu,
          inst_jal, inst_jr, inst_addu, inst_or, inst_sll, inst_lw,
-         inst_sw;
+         inst_sw,inst_xor;
 
     wire op_add, op_sub, op_slt, op_sltu;
     wire op_and, op_nor, op_or, op_xor;
@@ -187,13 +208,14 @@ module ID(
     assign inst_lw      = op_d[6'b10_0011];
     assign inst_sll     = op_d[6'b00_0000] && func_d[6'b00_0000];
     assign inst_sw      = op_d[6'b10_1011];
+    assign inst_xor     = op_d[6'b00_0000] && sa_d[5'b00_000] && func_d[6'b10_0110];
     
     
     
     
     // rs to reg1
     assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_addu | inst_or |
-                             inst_lw | inst_sw;
+                             inst_lw | inst_sw | inst_xor;
 
     // pc to reg1
     assign sel_alu_src1[1] = inst_jal;
@@ -203,7 +225,7 @@ module ID(
 
     
     // rt to reg2
-    assign sel_alu_src2[0] = inst_subu | inst_addu | inst_or | inst_sll;
+    assign sel_alu_src2[0] = inst_subu | inst_addu | inst_or | inst_sll | inst_xor;
     
     // imm_sign_extend to reg2
     assign sel_alu_src2[1] = inst_lui | inst_addiu | inst_lw | inst_sw;
@@ -223,7 +245,7 @@ module ID(
     assign op_and = 1'b0;
     assign op_nor = 1'b0;
     assign op_or = inst_ori | inst_or;
-    assign op_xor = 1'b0;
+    assign op_xor = inst_xor;
     assign op_sll = inst_sll;
     assign op_srl = 1'b0;
     assign op_sra = 1'b0;
@@ -246,12 +268,12 @@ module ID(
 
     // regfile sotre enable
     assign rf_we = inst_ori | inst_lui | inst_addiu | inst_subu | inst_jal | inst_addu | 
-                   inst_or | inst_sll | inst_lw;
+                   inst_or | inst_sll | inst_lw | inst_xor ;
 
 
 
     // store in [rd]
-    assign sel_rf_dst[0] = inst_subu | inst_addu | inst_or | inst_sll;
+    assign sel_rf_dst[0] = inst_subu | inst_addu | inst_or | inst_sll | inst_xor ;
     // store in [rt] 
     assign sel_rf_dst[1] = inst_ori | inst_lui | inst_addiu |inst_lw | inst_sw;
     // store in [31]
@@ -263,7 +285,7 @@ module ID(
                     | {5{sel_rf_dst[2]}} & 32'd31;
 
     // 0 from alu_res ; 1 from ld_res
-    assign sel_rf_res = inst_lw; 
+    assign sel_rf_res = 0'b0; 
 
     assign id_to_ex_bus = {
         id_pc,          // 158:127
@@ -303,6 +325,7 @@ module ID(
         br_addr
     };
     
-    
+    assign stallreq = ((ex_op_i == 6'b100011)&&(ex_rf_we == 1'b1)&&((ex_rf_waddr == rs) | (ex_rf_waddr == rt))) ? 1'b1: 
+                       1'b0;
 
 endmodule

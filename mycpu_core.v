@@ -32,6 +32,8 @@ module mycpu_core(
     wire [`DATA_SRAM_WD-1:0] ex_dt_sram_bus;
     //wire [`WB_TO_RF_WD-1:0] wb_to_rf_bus;
     wire [`StallBus-1:0] stall;
+    wire stallreq_for_load;
+    wire stallreq;
     
 
     IF u_IF(
@@ -100,7 +102,8 @@ module mycpu_core(
 
     CTRL u_CTRL(
     	.rst   (rst   ),
-        .stall (stall )
+        .stall (stall ),
+        .stallreq_for_load(stallreq)
     );
     
 endmodule
