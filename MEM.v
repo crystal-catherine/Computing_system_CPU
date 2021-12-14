@@ -46,9 +46,11 @@ module MEM(
     wire [31:0] hi_ex_wdata;
     wire lo_ex_we;
     wire [31:0] lo_ex_wdata;
+    wire inst_b;
     
 
     assign {
+        inst_b,         // 208
         hi_ex_we,       // 207
         hi_ex_wdata,    // 206:175
         lo_ex_we,       // 174
@@ -67,7 +69,11 @@ module MEM(
     } =  ex_to_mem_bus_r;
 
     
-    assign rf_wdata = (data_ram_en & (data_ram_wen == 4'b0000)) ? data_sram_rdata:
+    assign rf_wdata = ((ex_result[1:0]==2'b11) && data_ram_en && inst_b) ? {{24{data_sram_rdata[31]}},data_sram_rdata[31:24]}:
+                       ((ex_result[1:0]==2'b10) && data_ram_en && inst_b) ? {{24{data_sram_rdata[23]}},data_sram_rdata[23:16]}:
+                       ((ex_result[1:0]==2'b01) && data_ram_en && inst_b) ? {{24{data_sram_rdata[15]}},data_sram_rdata[15:8]}:
+                       ((ex_result[1:0]==2'b00) && data_ram_en && inst_b) ? {{24{data_sram_rdata[7]}},data_sram_rdata[7:0]}:
+                      (data_ram_en & (data_ram_wen == 4'b0000)) ? data_sram_rdata:
                       sel_rf_res ? mem_result : 
                       r_hi ? r_hi_data :
                       r_lo ? r_lo_data :
