@@ -53,9 +53,11 @@ module EX(
     wire r_lo;
     wire [31:0] r_lo_data;
     reg is_in_delayslot;
-    wire inst_b, inst_bu;
+    wire inst_b, inst_bu, inst_h, inst_hu;
 
     assign {
+        inst_h,         // 228
+        inst_hu,        // 227
         inst_b,         // 226
         inst_bu,        // 225
         r_lo,           // 224
@@ -273,6 +275,8 @@ module EX(
     
     
     assign ex_to_mem_bus = {
+        inst_h,         // 211
+        inst_hu,        // 210
         inst_b,         // 209
         inst_bu,        // 208
         hi_ex_we,       // 207

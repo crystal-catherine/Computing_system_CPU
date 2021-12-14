@@ -46,10 +46,12 @@ module MEM(
     wire [31:0] hi_ex_wdata;
     wire lo_ex_we;
     wire [31:0] lo_ex_wdata;
-    wire inst_b, inst_bu;
+    wire inst_b, inst_bu, inst_h, inst_hu;
     
 
     assign {
+        inst_h,         // 211
+        inst_hu,        // 210
         inst_b,         // 209
         inst_bu,        // 208
         hi_ex_we,       // 207
@@ -79,6 +81,13 @@ module MEM(
                        ((ex_result[1:0]==2'b10) && data_ram_en && inst_bu) ? {24'b0,data_sram_rdata[23:16]}:
                        ((ex_result[1:0]==2'b01) && data_ram_en && inst_bu) ? {24'b0,data_sram_rdata[15:8]}:
                        ((ex_result[1:0]==2'b00) && data_ram_en && inst_bu) ? {24'b0,data_sram_rdata[7:0]}:
+                       
+                       ((ex_result[1:0]==2'b10) && data_ram_en && inst_h) ? {{16{data_sram_rdata[31]}},data_sram_rdata[31:16]}:
+                       ((ex_result[1:0]==2'b00) && data_ram_en && inst_h) ? {{16{data_sram_rdata[15]}},data_sram_rdata[15:0]}:
+                       
+                       ((ex_result[1:0]==2'b10) && data_ram_en && inst_hu) ? {16'b0,data_sram_rdata[31:16]}:
+                       ((ex_result[1:0]==2'b00) && data_ram_en && inst_hu) ? {16'b0,data_sram_rdata[15:0]}:
+                       
                       (data_ram_en & (data_ram_wen == 4'b0000)) ? data_sram_rdata:
                       sel_rf_res ? mem_result : 
                       r_hi ? r_hi_data :
