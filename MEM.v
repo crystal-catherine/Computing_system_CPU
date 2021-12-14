@@ -89,10 +89,10 @@ module MEM(
                        ((ex_result[1:0]==2'b00) && data_ram_en && inst_hu) ? {16'b0,data_sram_rdata[15:0]}:
                        
                       (data_ram_en & (data_ram_wen == 4'b0000)) ? data_sram_rdata:
+                      
                       sel_rf_res ? mem_result : 
                       r_hi ? r_hi_data :
                       r_lo ? r_lo_data :
-                      //(r_lo_data!=32'b0) ? r_lo_data :
                       ex_result;
 
     assign mem_to_wb_bus = {
