@@ -109,19 +109,25 @@ module EX(
     assign data_sram_wdata = rf_rdata2;
     assign ex_op_i = data_sram_en ? inst[31:26]:6'b000000;
     
+    wire inst_div, inst_divu, inst_mult, inst_multu;
     
-    
+    assign inst_div       = op_d[6'b00_0000] && func_d[6'b01_1010];
+    assign inst_divu      = op_d[6'b00_0000] && func_d[6'b01_1011];
+    assign inst_mult      = op_d[6'b00_0000] && func_d[6'b01_1000];
+    assign inst_multu     = op_d[6'b00_0000] && func_d[6'b01_1001];
     
     // MUL part
     wire [63:0] mul_result;
     wire mul_signed; // 有符号乘法标记
+    
+    assign mul_signed = inst_mult ? 1'b1 : 1'b0;
 
     mul u_mul(
     	.clk        (clk            ),
         .resetn     (~rst           ),
         .mul_signed (mul_signed     ),
-        .ina        (      ), // 乘法源操作数1
-        .inb        (      ), // 乘法源操作数2
+        .ina        (alu_src1), // 乘法源操作数1
+        .inb        (alu_src2), // 乘法源操作数2
         .result     (mul_result     ) // 乘法结果 64bit
     );
 
@@ -145,13 +151,12 @@ module EX(
     
     
     wire [63:0] div_result;
-    wire [63:0] div_result_end;
-    wire inst_div, inst_divu;
+    //wire [63:0] div_result_end;
+    
     wire div_ready_i;
     reg div_ready_flag;
     reg stallreq_for_div;
-    assign inst_div       = op_d[6'b00_0000] && func_d[6'b01_1010];
-    assign inst_divu      = op_d[6'b00_0000] && func_d[6'b01_1011];
+    
     assign stallreq_for_ex = stallreq_for_div;
 
     reg [31:0] div_opdata1_o;
@@ -241,24 +246,6 @@ module EX(
         end
     end
     
-    reg [63:0] div_result_reg;
-    reg div_flag;
-    
-     always @ (posedge clk) begin
-     div_flag <= 1'b0;
-        if (rst) begin
-            div_result_reg <= 32'b0;
-            div_flag <= 1'b0;       
-        end
-        else if (stall[3]==`Stop && stall[4]==`NoStop) begin
-            //div_result_reg <= div_result;
-            div_flag <= 1'b1;
-        end
-        else if (stall[3]==`NoStop) begin
-            div_result_reg <= div_result;
-            div_flag <= 1'b1;
-        end
-    end
    
     // mul_result 和 div_result 可以直接使用
     
@@ -266,15 +253,16 @@ module EX(
     wire [31:0] hi_ex_wdata;
     wire lo_ex_we;
     wire [31:0] lo_ex_wdata;
-    wire [63:0] div_result_end;
     
     //assign div_result_end = div_flag ? div_result_reg : div_result;
     assign div_result_end = div_result;
     
-    assign hi_ex_wdata = div_result_end[63:32];
-    assign hi_ex_we = (hi_ex_wdata) ? 1'b1 : inst_div;
-    assign lo_ex_wdata = div_result_end[31:0];
-    assign lo_ex_we = (lo_ex_wdata) ? 1'b1 : inst_div ;
+    assign hi_ex_wdata = (inst_div | inst_divu) ? div_result[63:32] : 
+                          (inst_mult | inst_multu) ? mul_result[63:32] : 32'b0;
+    assign hi_ex_we = inst_div | inst_divu | inst_mult | inst_multu;
+    assign lo_ex_wdata = (inst_div | inst_divu) ? div_result[31:0] : 
+                          (inst_mult | inst_multu) ? mul_result[31:0] : 32'b0;
+    assign lo_ex_we = inst_div | inst_divu | inst_mult | inst_multu;
     
     
     
