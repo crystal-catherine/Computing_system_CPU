@@ -35,4 +35,14 @@
 `define DivResultNotReady 1'b0
 `define DivStart 1'b1
 `define DivStop 1'b0
-// 2021-11-29 add
+
+// 乘除法
+//除法div
+`define Free 2'b00
+//`define DivByZero 2'b01
+`define On 2'b10
+`define End 2'b11
+`define ResultReady 1'b1
+`define ResultNotReady 1'b0
+`define Start 1'b1
+`define MDStop 1'b0
