@@ -53,9 +53,11 @@ module EX(
     wire r_lo;
     wire [31:0] r_lo_data;
     reg is_in_delayslot;
-    wire inst_b, inst_bu, inst_h, inst_hu;
+    wire inst_b, inst_bu, inst_h, inst_hu, inst_sb_e, inst_sh_e;
 
     assign {
+        inst_sh_e,
+        inst_sb_e,      // 229
         inst_h,         // 228
         inst_hu,        // 227
         inst_b,         // 226
@@ -108,13 +110,25 @@ module EX(
     assign ex_result = alu_result;
     
     assign data_sram_en = data_ram_en;
-    assign data_sram_wen = data_ram_wen;
+    assign data_sram_wen = (inst_sb_e && (ex_result[1:0]==2'b11) && data_ram_en) ? 4'b1000:
+                            (inst_sb_e && (ex_result[1:0]==2'b10) && data_ram_en) ? 4'b0100:
+                            (inst_sb_e && (ex_result[1:0]==2'b01) && data_ram_en) ? 4'b0010:
+                            (inst_sb_e && (ex_result[1:0]==2'b00) && data_ram_en) ? 4'b0001:
+                            
+                            (inst_sh_e && (ex_result[1:0]==2'b10) && data_ram_en) ? 4'b1100:
+                            (inst_sh_e && (ex_result[1:0]==2'b00) && data_ram_en) ? 4'b0011:
+                            
+                             data_ram_wen;
     assign data_sram_addr = ex_result;
-    assign data_sram_wdata = ((ex_result[1:0]==2'b11) && data_ram_en && ((data_ram_wen == 4'b0001)|(data_ram_wen == 4'b0010)|(data_ram_wen == 4'b0100)|(data_ram_wen == 4'b1000))) ? rf_rdata2[31:24]:
-                              ((ex_result[1:0]==2'b10) && data_ram_en && ((data_ram_wen == 4'b0001)|(data_ram_wen == 4'b0010)|(data_ram_wen == 4'b0100)|(data_ram_wen == 4'b1000))) ? rf_rdata2[23:16]:
-                              ((ex_result[1:0]==2'b01) && data_ram_en && ((data_ram_wen == 4'b0001)|(data_ram_wen == 4'b0010)|(data_ram_wen == 4'b0100)|(data_ram_wen == 4'b1000))) ? rf_rdata2[15:8]:
-                              ((ex_result[1:0]==2'b00) && data_ram_en && ((data_ram_wen == 4'b0001)|(data_ram_wen == 4'b0010)|(data_ram_wen == 4'b0100)|(data_ram_wen == 4'b1000))) ? rf_rdata2[7:0]:
-                              data_ram_wen == 4'b1111 ? rf_rdata2 : 32'b0;
+    assign data_sram_wdata = (inst_sb_e && data_ram_en && (data_sram_wen == 4'b1000)) ? {4{rf_rdata2[7:0]}}:
+                              (inst_sb_e && data_ram_en && (data_sram_wen == 4'b0100)) ? {4{rf_rdata2[7:0]}}:
+                              (inst_sb_e && data_ram_en && (data_sram_wen == 4'b0010)) ? {4{rf_rdata2[7:0]}}:
+                              (inst_sb_e && data_ram_en && (data_sram_wen == 4'b0001)) ? {4{rf_rdata2[7:0]}}:
+                              
+                              (inst_sh_e && data_ram_en && (data_sram_wen == 4'b1100)) ? {2{rf_rdata2[15:0]}}:
+                              (inst_sh_e && data_ram_en && (data_sram_wen == 4'b0011)) ? {2{rf_rdata2[15:0]}}:
+                              
+                               rf_rdata2 ;
     
     assign ex_op_i = data_sram_en ? inst[31:26]:6'b000000;
     
