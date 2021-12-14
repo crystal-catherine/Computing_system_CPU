@@ -17,6 +17,14 @@
 // 2021-11-29 add
 `define ZeroWord 32'b0
 
+//乘法mul
+`define MulFree 2'b00
+`define MulOn 2'b01
+`define MulEnd 2'b10
+`define MulResultReady 1'b1
+`define MulResultNotReady 1'b0
+`define MulStart 1'b1
+`define MulStop 1'b0
 
 //除法div
 `define DivFree 2'b00

@@ -143,18 +143,100 @@ module EX(
     
     // MUL part
     wire [63:0] mul_result;
-    wire mul_signed; // 有符号乘法标记
     
-    assign mul_signed = inst_mult ? 1'b1 : 1'b0;
+    wire mul_ready_i;
+    reg mul_ready_flag;
+    reg stallreq_for_mul;
+    
 
-    mul u_mul(
-    	.clk        (clk            ),
-        .resetn     (~rst           ),
-        .mul_signed (mul_signed     ),
-        .ina        (alu_src1), // 乘法源操作数1
-        .inb        (alu_src2), // 乘法源操作数2
-        .result     (mul_result     ) // 乘法结果 64bit
+    reg [31:0] mul_opdata1_o;
+    reg [31:0] mul_opdata2_o;
+    reg mul_start_o;
+    reg signed_mul_o;
+    
+
+    mul2 u_mul2(
+    	.rst          (rst          ),
+        .clk          (clk          ),
+        .mul_signed   (signed_mul_o ),
+        .ina          (mul_opdata1_o    ),
+        .inb          (mul_opdata2_o    ),
+        .start_m      (mul_start_o      ),
+        //.annul_i      (1'b0      ),
+        .result       (mul_result     ), // 除法结果 64bit
+        .ready_m      (mul_ready_i      )
     );
+    
+    
+    
+    always @ (*) begin
+        if (rst) begin
+            stallreq_for_mul = `NoStop;
+            mul_opdata1_o = `ZeroWord;
+            mul_opdata2_o = `ZeroWord;
+            mul_start_o = `MulStop;
+            signed_mul_o = 1'b0;
+        end
+        else begin
+            stallreq_for_mul = `NoStop;
+            mul_opdata1_o = `ZeroWord;
+            mul_opdata2_o = `ZeroWord;
+            mul_start_o = `MulStop;
+            signed_mul_o = 1'b0;
+            case ({inst_mult,inst_multu})
+                2'b10:begin
+                    if (mul_ready_i == `MulResultNotReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStart;
+                        signed_mul_o = 1'b1;
+                        stallreq_for_mul = `Stop;
+                    end
+                    else if (mul_ready_i == `MulResultReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b1;
+                        stallreq_for_mul = `NoStop;
+                    end
+                    else begin
+                        mul_opdata1_o = `ZeroWord;
+                        mul_opdata2_o = `ZeroWord;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                end
+                2'b01:begin
+                    if (mul_ready_i == `MulResultNotReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStart;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `Stop;
+                    end
+                    else if (mul_ready_i == `MulResultReady) begin
+                        mul_opdata1_o = rf_rdata1;
+                        mul_opdata2_o = rf_rdata2;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                    else begin
+                        mul_opdata1_o = `ZeroWord;
+                        mul_opdata2_o = `ZeroWord;
+                        mul_start_o = `MulStop;
+                        signed_mul_o = 1'b0;
+                        stallreq_for_mul = `NoStop;
+                    end
+                end
+                default:begin
+                end
+            endcase
+        end
+    end
+    
+   
 
     // DIV part
     
@@ -176,13 +258,12 @@ module EX(
     
     
     wire [63:0] div_result;
-    //wire [63:0] div_result_end;
     
     wire div_ready_i;
     reg div_ready_flag;
     reg stallreq_for_div;
     
-    assign stallreq_for_ex = stallreq_for_div;
+    assign stallreq_for_ex = stallreq_for_div | stallreq_for_mul;
 
     reg [31:0] div_opdata1_o;
     reg [31:0] div_opdata2_o;
