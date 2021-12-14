@@ -1,13 +1,13 @@
 `define IF_TO_ID_WD 33
-`define ID_TO_EX_WD 225
-`define EX_TO_MEM_WD 208
-`define MEM_TO_WB_WD 107
-`define EX_TO_ID_WD 110
+`define ID_TO_EX_WD 227
+`define EX_TO_MEM_WD 210
+`define MEM_TO_WB_WD 309
+`define EX_TO_ID_WD 176
 `define MEM_TO_ID_WD 104
 `define WB_TO_ID_WD 104
 `define BR_WD 33
 `define DATA_SRAM_WD 69
-`define WB_TO_RF_WD 104
+`define WB_TO_RF_WD 304
 
 `define StallBus 6
 `define NoStop 1'b0
