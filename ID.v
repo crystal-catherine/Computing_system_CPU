@@ -67,6 +67,11 @@ module ID(
     wire lo_wb_we;
     wire [31:0] lo_wb_wdata;
     
+    wire ex_r_lo;
+    wire [31:0] ex_r_lo_data;
+    wire ex_r_hi;
+    wire [31:0] ex_r_hi_data;
+    
 
     always @ (posedge clk) begin
         if (rst) begin
@@ -129,6 +134,10 @@ module ID(
         wb_rf_wdata
     };
     assign {
+        ex_r_lo,           // 141
+        ex_r_lo_data,      // 140:109
+        ex_r_hi,           // 108
+        ex_r_hi_data,      // 107:76
         hi_ex_to_id_we,       
         hi_ex_wdata,    
         lo_ex_to_id_we,       
@@ -188,8 +197,8 @@ module ID(
     wire [31:0] r_hi_data;
     wire r_lo;
     wire [31:0] r_lo_data;
-    wire hi_we;
-    wire lo_we;
+    wire hi_we_id;
+    wire lo_we_id;
 
 
     regfile u_regfile(
@@ -205,10 +214,10 @@ module ID(
         .we     (wb_rf_we     ),
         .waddr  (wb_rf_waddr  ),
         .wdata  (wb_rf_wdata  ),
-        .hi_we  (hi_rf_we),
-        .lo_we  (lo_rf_we),
-        .hi_wdata(hi_rf_wdata),
-        .lo_wdata(lo_rf_wdata),
+        .hi_we  (hi_wb_we),
+        .lo_we  (lo_wb_we),
+        .hi_wdata(hi_wb_wdata),
+        .lo_wdata(lo_wb_wdata),
         .ex_to_id_we     (ex_rf_we     ),
         .ex_to_id_waddr  (ex_rf_waddr  ),
         .ex_wdata  (ex_result  ),
@@ -332,8 +341,8 @@ module ID(
     assign r_hi = inst_mfhi;
     assign r_lo = inst_mflo;
     
-    assign hi_we = inst_div | inst_divu;
-    assign lo_we = inst_div | inst_divu;
+    assign hi_we_id = inst_div | inst_divu;
+    assign lo_we_id = inst_div | inst_divu;
     
     // rs to reg1
     assign sel_alu_src1[0] = inst_ori | inst_addiu | inst_subu | inst_addu | inst_or |
@@ -456,13 +465,23 @@ module ID(
     wire rs_le_z;
     wire rs_lt_z;
     wire [31:0] pc_plus_4;
+    wire [31:0] rdata1_end;
+    wire [31:0] rdata2_end;
+    
+    assign rdata1_end = ex_r_lo ? ex_r_lo_data :
+                         ex_r_hi ? ex_r_hi_data :
+                         rdata1;
+    assign rdata2_end = ex_r_lo ? ex_r_lo_data :
+                         ex_r_hi ? ex_r_hi_data :
+                         rdata2;
+    
     assign pc_plus_4 = id_pc + 32'h4;
 
-    assign rs_eq_rt = (rdata1 == rdata2);
-    assign jump_bgez = (rdata1[31]==1'b0);
-    assign jump_bgtz=((rdata1[31]==1'b0 )&&(rdata1!=32'b0));
-    assign jump_blez = ((rdata1[31]==1'b1 )|(rdata1==32'b0));
-    assign jump_bltz = (rdata1[31]==1'b1);
+    assign rs_eq_rt = (rdata1_end == rdata2_end);
+    assign jump_bgez = (rdata1_end[31]==1'b0);
+    assign jump_bgtz=((rdata1_end[31]==1'b0 )&&(rdata1_end!=32'b0));
+    assign jump_blez = ((rdata1_end[31]==1'b1 )|(rdata1_end==32'b0));
+    assign jump_bltz = (rdata1_end[31]==1'b1);
     
 
     assign br_e    = (inst_beq & rs_eq_rt) | inst_jal | inst_jr | inst_jalr|(inst_bne & ~rs_eq_rt) | inst_j |(inst_bgez & jump_bgez) |(inst_bgtz & jump_bgtz)|(inst_blez & jump_blez)|(inst_bltz & jump_bltz)|(inst_bltzal & jump_bltz)|(inst_bgezal & jump_bgez);

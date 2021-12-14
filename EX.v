@@ -289,6 +289,10 @@ module EX(
     };
     
     assign ex_to_id_bus = {
+        r_lo,           // 141
+        r_lo_data,      // 140:109
+        r_hi,           // 108
+        r_hi_data,      // 107:76
         hi_ex_we,       
         hi_ex_wdata,    
         lo_ex_we,       
