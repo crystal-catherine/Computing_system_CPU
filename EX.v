@@ -109,12 +109,14 @@ module EX(
     assign data_sram_wdata = rf_rdata2;
     assign ex_op_i = data_sram_en ? inst[31:26]:6'b000000;
     
-    wire inst_div, inst_divu, inst_mult, inst_multu;
+    wire inst_div, inst_divu, inst_mult, inst_multu, inst_mthi, inst_mtlo;
     
     assign inst_div       = op_d[6'b00_0000] && func_d[6'b01_1010];
     assign inst_divu      = op_d[6'b00_0000] && func_d[6'b01_1011];
     assign inst_mult      = op_d[6'b00_0000] && func_d[6'b01_1000];
     assign inst_multu     = op_d[6'b00_0000] && func_d[6'b01_1001];
+    assign inst_mthi      = op_d[6'b00_0000] && func_d[6'b01_0001];
+    assign inst_mtlo      = op_d[6'b00_0000] && func_d[6'b01_0011];
     
     // MUL part
     wire [63:0] mul_result;
@@ -258,11 +260,13 @@ module EX(
     assign div_result_end = div_result;
     
     assign hi_ex_wdata = (inst_div | inst_divu) ? div_result[63:32] : 
-                          (inst_mult | inst_multu) ? mul_result[63:32] : 32'b0;
-    assign hi_ex_we = inst_div | inst_divu | inst_mult | inst_multu;
+                          (inst_mult | inst_multu) ? mul_result[63:32] : 
+                           inst_mthi ? alu_src1 : 32'b0;
+    assign hi_ex_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mthi;
     assign lo_ex_wdata = (inst_div | inst_divu) ? div_result[31:0] : 
-                          (inst_mult | inst_multu) ? mul_result[31:0] : 32'b0;
-    assign lo_ex_we = inst_div | inst_divu | inst_mult | inst_multu;
+                          (inst_mult | inst_multu) ? mul_result[31:0] : 
+                          inst_mtlo ? alu_src1 : 32'b0;
+    assign lo_ex_we = inst_div | inst_divu | inst_mult | inst_multu | inst_mtlo;
     
     
     
@@ -285,6 +289,10 @@ module EX(
     };
     
     assign ex_to_id_bus = {
+        r_lo,           // 141
+        r_lo_data,      // 140:109
+        r_hi,           // 108
+        r_hi_data,      // 107:76
         hi_ex_we,       
         hi_ex_wdata,    
         lo_ex_we,       

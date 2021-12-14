@@ -51,8 +51,8 @@ module regfile(
     input wire [31:0] lo_wb_wdata
 );
     reg [31:0] reg_array [31:0];
-    reg [31:0] hi = 32'b0;
-    reg [31:0] lo = 32'b0;
+    reg [31:0] hi;
+    reg [31:0] lo;
     // write
     always @ (posedge clk) begin
         if (we && waddr!=5'b0) begin
