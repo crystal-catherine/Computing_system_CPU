@@ -53,9 +53,10 @@ module EX(
     wire r_lo;
     wire [31:0] r_lo_data;
     reg is_in_delayslot;
-    wire inst_b, inst_bu, inst_h, inst_hu, inst_sb_e, inst_sh_e;
+    wire inst_b, inst_bu, inst_h, inst_hu, inst_sb_e, inst_sh_e, inst_lsae;
 
     assign {
+        inst_lsae,
         inst_sh_e,
         inst_sb_e,      // 229
         inst_h,         // 228
@@ -82,16 +83,23 @@ module EX(
     } = id_to_ex_bus_r;
 
     wire [31:0] imm_sign_extend, imm_zero_extend, sa_zero_extend;
+    wire [1:0] sa_2;
     assign imm_sign_extend = {{16{inst[15]}},inst[15:0]};
     assign imm_zero_extend = {16'b0, inst[15:0]};
     assign sa_zero_extend = {27'b0,inst[10:6]};
+    assign sa_2 = inst[7:6];
 
     wire [31:0] alu_src1, alu_src2;
     wire [31:0] alu_result, ex_result;
     wire [5:0] ex_op_i;
+    wire [2:0] sa_re;
+    assign sa_re = sa_2 + 1'b1;
+    
 
     assign alu_src1 = sel_alu_src1[1] ? ex_pc :
-                      sel_alu_src1[2] ? sa_zero_extend : rf_rdata1;
+                      sel_alu_src1[2] ? sa_zero_extend : 
+                      inst_lsae ? (rf_rdata1<<(sa_re)) :
+                      rf_rdata1;
 
     assign alu_src2 = sel_alu_src2[1] ? imm_sign_extend :
                       sel_alu_src2[2] ? 32'd8 :
@@ -132,6 +140,7 @@ module EX(
     
     assign ex_op_i = data_sram_en ? inst[31:26]:6'b000000;
     
+    //乘除法器
     wire inst_div, inst_divu, inst_mult, inst_multu, inst_mthi, inst_mtlo;
     
     wire [5:0] opcode;
@@ -160,17 +169,17 @@ module EX(
     // MUL&DIV part
     wire e_div;
     assign e_div = inst_div | inst_divu;
-    wire [63:0] md_result;
+    wire [63:0] md_result;//结果
     
-    wire md_ready_i;
+    wire md_ready_i;//准备信号
     reg md_ready_flag;
-    reg stallreq_for_md;
+    reg stallreq_for_md;//乘除法暂停
     
 
     reg [31:0] md_opdata1_o;
     reg [31:0] md_opdata2_o;
-    reg md_start_o;
-    reg signed_md_o;
+    reg md_start_o;//开始信号
+    reg signed_md_o;//有无符号
     
 
     div_mul u_div_mul(
